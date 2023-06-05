@@ -1,162 +1,123 @@
 #include <iostream>
 #include <fstream>
-#include <cstring>
+
 using namespace std;
-const int max_r = 10; // Maximum number of records in the direct access file
-const int n = 13;     // Hash table size
-struct Student
-{
-    int rollno;
-    char name[50];
-    float marks;
-};
-class DirectAccessFile
-{
-	private:
-    	fstream file; 
-    	int hashTable[n];  // Hash table to store record positions
-    	
-    public:	
-    	//constructor:-
-    	DirectAccessFile() 
-	{
-        	// Initialize hash table entries to -1 (indicating empty position)
-        	for(int i=0;i<n;i++)
-        	{
-        		hashTable[i] = -1;
-		}
-    	}
-    	void openFile(const char* fileName) 
-	{
-        		file.open(fileName, ios::binary | ios::in | ios::out | ios::trunc);
-        		if (!file) 
-		{
-            			cerr << "Error opening file." << endl;
-            			exit(1);
-        		}
-    	}
-   		void closeFile() 
-		{
-        			file.close();
-    		}
-    	void insert(Student rec)
-	{
-       	//1) Calculate the hash value
-        	int hashValue = rec.rollno % n;
-	int loc;
-        	//2) collision handled using linear probing
-        	int i = 0;
-        	while (i<=n) 
-	{        	
-           	loc = (hashValue + i) % n; 
-            	if(hashTable[loc] == -1)
-            		break;
-            	if(loc == hashValue)
-	{
-		cout<<"Table is full....."<<endl;
-	}
-            	i++;
-        	}
-        	// 3)Move file pointer to the hash value position
-        	file.seekp(loc * sizeof(Student));
-        	//4) Write the record to the file
-        	file.write((char*)&rec, sizeof(Student));
-        	hashTable[loc] = loc;
-        	cout << "Record inserted successfully...." << endl;
-    	}
-    void display() 
-{
-        file.seekg(0, ios::beg); 
 
-        cout << "File Contents:" << endl;
-        cout << "--------------" << endl;
-        for (int i = 0; i <= max_r; i++)
-	{
-            Student rec;
-            file.read((char*)&rec, sizeof(Student));
-            if (file.eof()) 
-	{
-                break;
-            }
-            if (hashTable[i] != -1)
-	{
-           	cout<< i << ") Rolllno: " << rec.rollno << ",Name: " << rec.name << ",Marks: "<<rec.marks<<endl;
-            }
-            else
-            {
-            	cout<<i<<")------------------------"<<endl;
-	}
-        }
-        cout << "--------------" << endl;
+const int MAX_RECORDS = 100;
+
+class Student {
+public:
+    int rollNumber;
+    string name;
+    string division;
+    string address;
+
+    void display() {
+        cout << "Roll Number : " << rollNumber << endl;
+        cout << "Name : " << name << endl;
+        cout << "Division : " << division << endl;
+        cout << "Address : " << address << endl;
+//        cout << "-----------------------------" << endl;
     }
-    
-    void del(int rollno1) 
-{
-        //1)Calculate the hash value
-        int hashValue = rollno1 % n;
-        //2) Search for the record
-        int i = 0;
-        int loc;
-        while (i<=n)
-	{
-		loc = (hashValue + i) % n; 
-		if(hashTable[loc] != -1)
-            		break;
-            i++;
-    	}
-        file.seekg(loc* sizeof(Student));
-        //Read the record from the file
-        Student rec;
-        file.read((char*)&rec, sizeof(Student));
-        if (rec.rollno == rollno1) 
-	{
-            // Delete the record by marking hash table entry as -1
-            hashTable[loc] = -1;
-            file.seekp(loc * sizeof(Student));
-            file.write((char*)&rec, sizeof(Student));
+};
 
-            cout << "Record with key " << rollno1 << " deleted successfully." << endl;
+class DirectAccessFile {
+private:
+    Student records[MAX_RECORDS];
+
+public:
+    DirectAccessFile() {
+        for (int i = 0; i < MAX_RECORDS; i++) {
+            records[i].rollNumber = -1;  // Initialize rollNumber to -1 for empty records
+        }
+    }
+
+    void insertRecord(Student student) {
+        int index = student.rollNumber;
+        if (index < 0 || index >= MAX_RECORDS) {
+            cout << "Invalid roll number. Record cannot be inserted." << endl;
             return;
         }
-         else
-	{
-		 cout << "Record with key " << rollno1 << " not found." << endl;
-	}  
+        if (records[index].rollNumber != -1) {
+            cout << "Record with roll number " << index << " already exists." << endl;
+            return;
+        }
+        records[index] = student;
+        cout << "Record inserted successfully." << endl;
+    }
+
+    void deleteRecord(int rollNumber) {
+        if (rollNumber < 0 || rollNumber >= MAX_RECORDS) {
+            cout << "Invalid roll number. Record cannot be deleted." << endl;
+            return;
+        }
+        if (records[rollNumber].rollNumber == -1) {
+            cout << "Record with roll number " << rollNumber << " does not exist." << endl;
+            return;
+        }
+        records[rollNumber].rollNumber = -1;  // Mark record as deleted
+        cout << "Record deleted successfully." << endl;
+    }
+
+    void displayRecord(int rollNumber) {
+        if (rollNumber < 0 || rollNumber >= MAX_RECORDS) {
+            cout << "Invalid roll number. Record cannot be displayed." << endl;
+            return;
+        }
+        if (records[rollNumber].rollNumber == -1) {
+            cout << "Record with roll number " << rollNumber << " does not exist." << endl;
+            return;
+        }
+        cout << "Record details : " << endl;
+        records[rollNumber].display();
     }
 };
-int main() 
-{
-    DirectAccessFile d;
-    d.openFile("direct.txt");
-    Student rec;
-    int ch;
-    do
-    {
-    	cout<<"1: Insert"<<endl;
-    	cout<<"2: Delete"<<endl;
-    	cout<<"3: Display"<<endl;
-    	cout<<"Enter choice: ";
-    	cin>>ch;
-    	switch(ch)
-    	{
-    		case 1:
-    			cout<<"Enter records(RollNo , Name , Marks): ";
-    			cin>>rec.rollno>>rec.name>>rec.marks;
-    			d.insert(rec);
-    			break;
-    			
-    		case 2:
-    			int rollno1;
-    			cout<<"Enter RollNo: ";
-    			cin>>rollno1;
-    			d.del(rollno1);
-    			break;
-    			
-    		case 3:
-    		    d.display();
-    		    break;
-		}
-	}while(ch != 4);
-    d.closeFile();
+
+int main() {
+    DirectAccessFile file;
+    int choice;
+    int rollNumber;
+    Student student;
+    string name, division, address;
+    while (true) {
+        cout << "_____MENU_____" << endl;
+        cout << "\n 1. Insert a record\n 2. Display a record\n 3. Delete a record\n 4. Exit" << endl;
+        cout << "Enter your choice : ";
+        cin >> choice;
+        switch (choice) {
+            case 1:
+                cout << "Enter the roll number : ";
+                cin >> rollNumber;
+                cout << "Enter the name : ";
+                cin >> name;
+                cout << "Enter the division : ";
+                cin >> division;
+                cout << "Enter the address : ";
+                cin >> address;
+//                Student student;
+                student.rollNumber = rollNumber;
+                student.name = name;
+                student.division = division;
+                student.address = address;
+                file.insertRecord(student);
+                break;
+            case 3:
+                cout << "Enter the roll number to delete : ";
+                cin >> rollNumber;
+                file.deleteRecord(rollNumber);
+                break;
+            case 2:
+                cout << "Enter the roll number to display : ";
+                cin >> rollNumber;
+                file.displayRecord(rollNumber);
+                break;
+            case 4:
+                cout << "Exiting program." << endl;
+                return 0;
+            default:
+                cout << "Invalid choice. Please try again." << endl;
+                break;
+        }
+    }
     return 0;
 }
